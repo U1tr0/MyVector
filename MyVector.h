@@ -32,4 +32,5 @@ public:
 private:
     ValueType* _data;
     size_t _size;
+    size_t _capacity;
 };

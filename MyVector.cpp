@@ -2,34 +2,36 @@
 #include <iostream>
 MyVector::MyVector(const size_t size) {
     this->_size = size;
-    this->_data = nullptr;
+    this->_capacity = 1;
     if (_size > 0) {
-        _data = new ValueType[size];
+        _capacity = _size * 2;
     }
+     _data = new ValueType[_capacity];
 }
 
 MyVector::MyVector(MyVector& other) {
     _size = other.size();
-    _data = nullptr;
-    if (_size > 0) {
-        _data = new ValueType[_size];
-        for(int i = 0; i < _size; ++i) {
+    _capacity = other._capacity;
+    _data = new ValueType[_capacity];
+    for(size_t i = 0; i < _size; ++i) {
             _data[i] = other[i];
-        }
     }
 }
 
 MyVector::MyVector(MyVector&& other) noexcept {
     _size = other.size();
     _data = other._data;
+    _capacity = other._capacity;
     other._size = 0;
     other._data = nullptr;
+    other._capacity = 0;
 
 }
 
 MyVector::~MyVector() {
     _size = 0;
     delete[] _data;
+    _capacity = 0;
 }
 
 ValueType& MyVector::at(size_t idx) {
@@ -49,7 +51,10 @@ const ValueType& MyVector::operator[](const size_t i) const {
 }
 
 void MyVector::insert(const ValueType& value, size_t idx) {
-    ValueType* newData = new ValueType[_size + 1];
+    if(_size == _capacity) {
+        _capacity *= 2;
+    }
+    ValueType* newData = new ValueType[_capacity];
     for(size_t i = 0; i < _size + 1; ++i) {
         if(i < idx) {
             newData[i] = _data[i];
@@ -76,8 +81,9 @@ void MyVector::pushFront(const ValueType& value) {
 
 void MyVector::clear() {
     delete[] _data;
-    _data = nullptr;
     _size = 0;
+    _capacity = 1;
+    _data = new ValueType[_capacity];
 }
 
 void MyVector::erase(size_t i) {
