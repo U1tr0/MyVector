@@ -4,7 +4,7 @@ MyVector::MyVector(const size_t size) {
     this->_size = size;
     this->_capacity = 1;
     if (_size > 0) {
-        _capacity = _size * 2;
+        _capacity = _size * ResizeCoef;
     }
      _data = new ValueType[_capacity];
 }
@@ -29,46 +29,56 @@ MyVector::MyVector(MyVector&& other) noexcept {
 }
 
 MyVector::~MyVector() {
-    _size = 0;
     delete[] _data;
+    _size = 0;
     _capacity = 0;
 }
 
 ValueType& MyVector::at(size_t idx) {
+    if (idx >= size()) {
+		throw std::out_of_range("idx >= size");
+	}
     return _data[idx];
 }
 
-const ValueType& MyVector::at(size_t idx) const {
+const ValueType& MyVector::at(const size_t idx) const {
+       if (idx >= size()) {
+		throw std::out_of_range("idx >= size");
+	}
     return _data[idx];
 }
 
-ValueType& MyVector::operator[](const size_t i) {
-    return _data[i];
+ValueType& MyVector::operator[](const size_t idx) {
+    return at(idx);
 }
 
-const ValueType& MyVector::operator[](const size_t i) const {
-    return _data[i];
+const ValueType& MyVector::operator[](const size_t idx) const {
+    return at(idx);
 }
 
 void MyVector::insert(const ValueType& value, size_t idx) {
-    if(_size == _capacity) {
-        _capacity *= 2;
+    if(idx > size()) {
+        throw std::out_of_range("idx > size");
     }
-    ValueType* newData = new ValueType[_capacity];
-    for(size_t i = 0; i < _size + 1; ++i) {
-        if(i < idx) {
+    ValueType* newData = _data;
+    if(_size == _capacity) {
+        _capacity *= ResizeCoef;
+        newData = new ValueType[_capacity];
+        for(size_t i = 0; i < idx; i++) {
             newData[i] = _data[i];
         }
-        else if(i > idx) {
-            newData[i] = _data[i - 1];
-        }
-        else if(i == idx) {
-            newData[i] = value;
-        }
     }
+    for(size_t i = _size; i > idx; i--) {
+        newData[i] = _data[i];
+    }
+    if(_size == _capacity) {
+        delete[] _data;
+        _data = newData;
+    }
+    _data[idx] = value;
     _size++;
-    delete[] _data;
-    _data = newData;
+
+
 }
 
 void MyVector::pushBack(const ValueType& value) {
@@ -86,28 +96,103 @@ void MyVector::clear() {
     _data = new ValueType[_capacity];
 }
 
-void MyVector::erase(size_t i) {
-    this->erase(i, 1);
+void MyVector::erase(size_t idx) {
+    this->erase(idx, 1);
 }
 
-void MyVector::erase(size_t i, size_t len) {
+void MyVector::erase(size_t idx, size_t len) {
+    if (idx >= _size) {
+        throw std::out_of_range("idx >= _size");
+    }
+    if (idx + len - 1 >= size()) {
+        len = _size - idx;
+    }
+    ValueType* newData = _data;
     size_t newSize = _size - len;
-    ValueType* newData = new ValueType[newSize];
-    for(size_t j = 0; j < i; ++j) {
-        newData[j] = _data[j];
+    bool flag = false;
+    while(newSize < (_capacity / ResizeCoef)) {
+        _capacity /= ResizeCoef;
+        flag = true;
     }
-    for(size_t j = i; j < newSize; ++j) {
-        newData[j] = _data[j + len];
+    if(flag) {
+        newData = new ValueType[_capacity];
+        for(size_t i = 0; i < idx; i++) {
+            newData[i] = _data[i];
+        }
     }
-    delete[] _data;
-    _data = newData;
+    for(size_t i = idx; i < newSize; i++) {
+        newData[i] = _data[i + len];
+    }
+    if(flag) {
+        delete[] _data;
+        _data = newData;
+    }
     _size = newSize;
 }
 
 void MyVector::popBack() {
+    if (size() == 0) {
+        throw std::out_of_range("size = 0");
+    }
     this->erase(size() - 1);
 }
 
-size_t MyVector::size() {
-    return _size;
+MyVector::Iterator::Iterator(ValueType* ptr) {
+    _ptr = ptr;
+}
+
+MyVector::Iterator::Iterator(const MyVector::Iterator& other) {
+    _ptr = other._ptr;
+}
+
+MyVector::Iterator& MyVector::Iterator::operator=(const MyVector::Iterator& other) {
+    _ptr = other._ptr;
+    return *this;
+}
+
+ValueType& MyVector::Iterator::operator*() const {
+    return *_ptr;
+}
+
+MyVector::Iterator& MyVector::Iterator::operator++() {
+    _ptr++;
+    return *this;
+}
+
+MyVector::Iterator MyVector::Iterator::operator++(int) {
+    Iterator temp = *this;
+    ++(*this);
+    return temp;
+}
+
+bool MyVector::Iterator::operator!=(const MyVector::Iterator& other) const {
+    return _ptr != other._ptr;
+}
+
+bool MyVector::Iterator::operator==(const MyVector::Iterator& other) const {
+    return !(*this != other);
+}
+
+bool MyVector::Iterator::operator<(const MyVector::Iterator& other) const {
+    return _ptr < other._ptr;
+}
+
+bool MyVector::Iterator::operator>(const MyVector::Iterator& other) const {
+    return _ptr > other._ptr;
+}
+
+bool MyVector::Iterator::operator<=(const MyVector::Iterator& other) const {
+    return !(*this > other);
+}
+
+bool MyVector::Iterator::operator>=(const MyVector::Iterator& other) const {
+    return !(*this < other);
+}
+
+MyVector::Iterator MyVector::begin() const {
+    return MyVector::Iterator(&_data[0]);
+}
+
+MyVector::Iterator MyVector::end() const noexcept {
+    return MyVector::Iterator(&_data[size()]);
 }
