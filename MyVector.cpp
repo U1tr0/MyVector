@@ -1,10 +1,17 @@
 #include "MyVector.h"
 #include <iostream>
-MyVector::MyVector(const size_t size) {
+MyVector::MyVector(const size_t size, ResizeStrategy strategy, size_t coef) {
     this->_size = size;
     this->_capacity = 1;
+    this->_resizeCoef = coef;
+    this->_strategy = strategy;
     if (_size > 0) {
-        _capacity = _size * ResizeCoef;
+        if(_strategy == ResizeStrategy::Multiplicative) {
+            _capacity = _size * ResizeCoef;
+        }
+        else{
+            _capacity = _size + ResizeCoef;
+        }
     }
      _data = new ValueType[_capacity];
 }
@@ -13,6 +20,8 @@ MyVector::MyVector(MyVector& other) {
     _size = other.size();
     _capacity = other._capacity;
     _data = new ValueType[_capacity];
+    _strategy = other._strategy;
+    _resizeCoef = other._resizeCoef;
     for(size_t i = 0; i < _size; ++i) {
             _data[i] = other[i];
     }
@@ -22,16 +31,21 @@ MyVector::MyVector(MyVector&& other) noexcept {
     _size = other.size();
     _data = other._data;
     _capacity = other._capacity;
+    _strategy = other._strategy;
+    _resizeCoef = other._resizeCoef;
     other._size = 0;
     other._data = nullptr;
     other._capacity = 0;
-
+    other._resizeCoef = 0;
+    other._strategy = ResizeStrategy::Multiplicative;
 }
 
 MyVector::~MyVector() {
     delete[] _data;
     _size = 0;
     _capacity = 0;
+    _resizeCoef = 0;
+    _strategy = ResizeStrategy::Multiplicative;
 }
 
 ValueType& MyVector::at(size_t idx) {
@@ -62,7 +76,12 @@ void MyVector::insert(const ValueType& value, size_t idx) {
     }
     ValueType* newData = _data;
     if(_size == _capacity) {
-        _capacity *= ResizeCoef;
+        if(_strategy == ResizeStrategy::Multiplicative) {
+            _capacity *= ResizeCoef;
+        }
+        else {
+            _capacity += ResizeCoef;
+        }
         newData = new ValueType[_capacity];
         for(size_t i = 0; i < idx; i++) {
             newData[i] = _data[i];
@@ -77,8 +96,6 @@ void MyVector::insert(const ValueType& value, size_t idx) {
     }
     _data[idx] = value;
     _size++;
-
-
 }
 
 void MyVector::pushBack(const ValueType& value) {
@@ -94,6 +111,7 @@ void MyVector::clear() {
     _size = 0;
     _capacity = 1;
     _data = new ValueType[_capacity];
+    _resizeCoef = 0;
 }
 
 void MyVector::erase(size_t idx) {
@@ -110,9 +128,16 @@ void MyVector::erase(size_t idx, size_t len) {
     ValueType* newData = _data;
     size_t newSize = _size - len;
     bool flag = false;
-    while(newSize < (_capacity / ResizeCoef)) {
-        _capacity /= ResizeCoef;
-        flag = true;
+    if(_strategy == ResizeStrategy::Multiplicative) {
+        while(newSize < (_capacity / ResizeCoef)) {
+            _capacity /= ResizeCoef;
+            flag = true;
+        }
+    }
+    else {
+        while(newSize < (_capacity - _resizeCoef)) {
+            _capacity -= _resizeCoef;
+        }
     }
     if(flag) {
         newData = new ValueType[_capacity];

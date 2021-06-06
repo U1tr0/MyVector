@@ -6,6 +6,11 @@
 const size_t ResizeCoef = 2;
 const size_t ResizeDelta = 8;
 
+enum class ResizeStrategy {
+    Additive,
+    Multiplicative
+};
+
 class MyVector : public IVector {
 public:
     struct Iterator {
@@ -30,7 +35,9 @@ public:
     Iterator begin() const;
     Iterator end() const noexcept;
 
-    MyVector(const size_t size = 0);
+    MyVector(const size_t size = 0,
+            ResizeStrategy strategy = ResizeStrategy::Multiplicative,
+            size_t coef = 2);
     MyVector(MyVector& other);
     MyVector(MyVector&& other) noexcept;
 
@@ -55,4 +62,6 @@ private:
     ValueType* _data;
     size_t _size;
     size_t _capacity;
+    size_t _resizeCoef;
+    ResizeStrategy _strategy;
 };
